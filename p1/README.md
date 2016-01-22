@@ -11,3 +11,5 @@ The client is run knowing the UDP IP:port of the aserver and an int64 secret val
 5. the client sends a FortuneReqMessage to fserver
 6. the client receives a FortuneMessage from the fserver
 7. the client prints out the received fortune string as the last thing before exiting on a new newline-terminated line
+
+![*The communication steps in this protocol are illustrated in the following space-time diagram:*](http://www.cs.ubc.ca/~bestchai/teaching/cs416_2015w2/assign1/assign1-proto.jpg)
