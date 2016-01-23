@@ -1,8 +1,8 @@
 **Problem 1 Description**
 
-Each client implements a sequential control flow, interacting with aserver first, and later with the fserver. The client communicates with both servers over UDP, using binary-encoded JSON messages.
+Each client implements a sequential control flow, interacting with aserver (authentication) first, and later with the fserver(fortune). The client communicates with both servers over UDP, using binary-encoded JSON messages.
 
-The client is run knowing the UDP IP:port of the aserver and an int64 secret value. It follows the following steps:
+The client knows the UDP IP:port of the aserver and an int64 secret value. It follows the following steps:
 
 1. the client sends a UDP message with arbitrary payload to the aserver
 2. the client receives a NonceMessage reply containing an int64 nonce from the aserver
