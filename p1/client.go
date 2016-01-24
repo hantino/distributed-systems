@@ -1,13 +1,8 @@
-// Author: Haniel Martino 
-
 /*
+Author: Haniel Martino
 
 Usage:
 $ go run client.go [local UDP ip:port] [aserver UDP ip:port] [secret]
-
-Example:
-$ go run client.go 127.0.0.1:2020 127.0.0.1:7070 1984
-
 */
 
 package main
@@ -67,36 +62,49 @@ Example:
 $ go run client.go 127.0.0.1:2020 198.162.52.206:1999 1984
 
 */
-func handleError(err error) {
-	if err != nil {
-		fmt.Println("Error: ", err)
-		os.Exit(-1)
-	}
-}
 
-// Main workhorse method.
-func main() {
-
-	msg := make([]byte, 1024)
-	local := os.Args[1]
-	aserver := os.Args[2]
-	secretString := os.Args[3]
-
-	// secret to 64 bit
-	secret, err := strconv.ParseInt(secretString, 10, 64)
+func dialServer(laddr string, raddr string) *net.UDPConn {
+	serverAddr, err := net.ResolveUDPAddr("udp", raddr)
 	handleError(err)
 
-	serverAddr, err := net.ResolveUDPAddr("udp", aserver)
-	handleError(err)
-
-	localAddr, err := net.ResolveUDPAddr("udp", local)
+	localAddr, err := net.ResolveUDPAddr("udp", laddr)
 	handleError(err)
 
 	conn, err := net.DialUDP("udp", localAddr, serverAddr)
 	handleError(err)
+	return conn
+}
 
+func handleFserverConnection(conn net.Conn, fInfoMessage FortuneInfoMessage) string {
+	msg := make([]byte, 1024)
+
+	var fortuneReqMessage FortuneReqMessage
+	fortuneReqMessage.FortuneNonce = fInfoMessage.FortuneNonce
+
+	// Sending JSON encoding to aserver
+	jsonReqMessage, err := json.Marshal(fortuneReqMessage)
+	handleError(err)
+
+	// Contacting fserver with nonce + secret
+	_, err = conn.Write(jsonReqMessage)
+	handleError(err)
+
+	// Reading msg from aserver
+	n, err := conn.Read(msg[:])
+	handleError(err)
+
+	var fortuneMessage FortuneMessage
+	json.Unmarshal(msg[:n], &fortuneMessage)
+
+	fortune := fortuneMessage.Fortune
+	return fortune
+}
+
+// returns FortuneInfoMessage
+func handleAserverConnection(conn net.Conn, secret int64) FortuneInfoMessage {
+	msg := make([]byte, 1024)
 	// Contacting aserver
-	fmt.Fprintf(conn, "Hello aserver")
+	fmt.Fprintf(conn, "ping")
 	n, err := conn.Read(msg[:])
 	handleError(err)
 
@@ -104,20 +112,8 @@ func main() {
 	var nonce NonceMessage
 	json.Unmarshal(msg[:n], &nonce)
 
-	// calculating nonce + secret for MD5
-	var nonceAndSecret int64
-	nonceAndSecret = nonce.Nonce + secret
-	// fmt.Println(nonceAndSecret)
-	buf := make([]byte, 16)
-	nb := binary.PutVarint(buf, nonceAndSecret)
-	slicedBuf := buf[:nb]
-
-	// Creating MD5 hash to aserver
-	hash := md5.New()
-	hash.Write(slicedBuf)
-
 	var hashMessage HashMessage
-	hashMessage.Hash = hex.EncodeToString(hash.Sum(nil))
+	hashMessage.Hash = computeNonceSecretHash(nonce.Nonce, secret)
 
 	// Sending JSON encoding to aserver
 	jsonMD5, err := json.Marshal(hashMessage)
@@ -133,35 +129,57 @@ func main() {
 	conn.Close()
 
 	// putting json received into Fortune struct
-	var fortuneInfoMessage FortuneInfoMessage
-	json.Unmarshal(msg[:n], &fortuneInfoMessage)
+	var fInfoMessage FortuneInfoMessage
+	json.Unmarshal(msg[:n], &fInfoMessage)
 
+	return fInfoMessage
+}
+
+// Returns the MD5 hash as a hex string for the (nonce + secret) value.
+func computeNonceSecretHash(nonce int64, secret int64) string {
+	sum := nonce + secret
+	buf := make([]byte, 512)
+	n := binary.PutVarint(buf, sum)
+	h := md5.New()
+	h.Write(buf[:n])
+	str := hex.EncodeToString(h.Sum(nil))
+	return str
+}
+
+// If err is non-nil, print it out and halt.
+func handleError(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+		os.Exit(1)
+	}
+}
+
+// Main
+func main() {
+	
+	//var msg[] byte
+	local := os.Args[1]
+	aserver := os.Args[2]
+	secretString := os.Args[3]
+
+	// secret to 64 bit
+	secret, err := strconv.ParseInt(secretString, 10, 64)
+	handleError(err)
+
+	// contact Aserver
+	conn := dialServer(local, aserver)
+	defer conn.Close()
+	//hashMessage := handleAserverConnection(conn, secret)
+
+	// Get FortuneInfoMessage
+	fInfoMessage := handleAserverConnection(conn, secret)
+	
 	// connecting to FortuneServer
-	fserverAddr, err := net.ResolveUDPAddr("udp", fortuneInfoMessage.FortuneServer)
-	handleError(err)
-	conn, err = net.DialUDP("udp", localAddr, fserverAddr)
-	handleError(err)
-
-	var fortuneReqMessage FortuneReqMessage
-	fortuneReqMessage.FortuneNonce = fortuneInfoMessage.FortuneNonce
-
-	// Sending JSON encoding to aserver
-	jsonReqMessage, err := json.Marshal(fortuneReqMessage)
-	handleError(err)
-
-	// Contacting fserver with nonce + secret
-	_, err = conn.Write(jsonReqMessage)
-	handleError(err)
-
-	// Reading msg from aserver
-	n, err = conn.Read(msg[:])
-	handleError(err)
-
-	var fortuneMessage FortuneMessage
-	json.Unmarshal(msg[:n], &fortuneMessage)
+	conn = dialServer(local, fInfoMessage.FortuneServer)
+	defer conn.Close()
+	// Get Fortune
+	fortune := handleFserverConnection(conn, fInfoMessage)
 
 	// Fortune message received from fserver
-	fmt.Println(fortuneMessage.Fortune)
-
-	conn.Close()
+	fmt.Println(fortune)
 }
