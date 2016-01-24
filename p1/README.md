@@ -1,4 +1,4 @@
-> go run client.go [local UDP ip:port]  [aserver ip:port]  [secret]
+`go run client.go [local UDP ip:port]  [aserver ip:port]  [secret]`
 
 **Problem 1 Description**
 Each client implements a sequential control flow, interacting with aserver first, and later with the fserver. The client communicates with both servers over UDP, using binary-encoded JSON messages.
