@@ -17,7 +17,7 @@
 
 #### Output and Usage on client
 ```
-Please enter 'get <filename>' or 'send <filename>' 
+Please enter 'get <filename>' 
 
 get /Full/Path/To/File/tooMuch.JPG
 4317196 bytes received

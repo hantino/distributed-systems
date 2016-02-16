@@ -12,29 +12,7 @@ import (
 	"strings"
 )
 
-func sendFile(fileName string, conn net.Conn) {
-
-	fmt.Println("send to client: ", fileName)
-
-	// file to read
-	file, err := os.Open(strings.TrimSpace(fileName))
-	defer file.Close()
-
-	if err != nil {
-		//conn.Write([]byte("-1"))
-		log.Fatal(err)
-	}
-
-	// send file to server
-	n, err := io.Copy(conn, file)
-	if err != nil {
-		log.Fatal(err)
-	}
-    // need to implement for persistent connection
-    conn.Close()
-	fmt.Println(n, "bytes sent")
-}
-
+// Method to handle receving files
 func getFile(fileName string, conn net.Conn) {
 
     copyFileArray := strings.Split(strings.TrimSpace(fileName), ".")
@@ -72,14 +50,12 @@ func main() {
 
 LOOP:
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Please enter 'get <filename>' or 'send <filename>' \n\n")
+	fmt.Print("Please enter 'get <filename>'\n\n")
 	userInput, _ := reader.ReadString('\n')
 	commandArray := strings.Split(userInput, " ")
 
 	if commandArray[0] == "get" {
 		getFile(commandArray[1], conn)
-	} else if commandArray[0] == "send" {
-		sendFile(commandArray[1], conn)
 	} else {
 		fmt.Println("Incorrect command")
 		goto LOOP

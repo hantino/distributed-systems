@@ -14,6 +14,7 @@ import (
 const PORT = "31415"
 const BUFFER_SIZE = 1024
 
+// Method to handle multiple client connections
 func connectionHandler(conn net.Conn) {
 	buf := make([]byte, BUFFER_SIZE)
 	//loop until disconntect
@@ -31,13 +32,8 @@ func connectionHandler(conn net.Conn) {
 
 		if commandArray[0] == "get" {
 			sendFile(commandArray[1], conn)
-		} else if commandArray[0] == "send" {
-			fmt.Println("getting a file")
-
-			getFile(commandArray[1], conn)
-
 		} else {
-			_, err = conn.Write([]byte("bad command"))
+			_, err = conn.Write([]byte("Incorrect Command"))
 			if err != nil {
 				conn.Close()
 				break
@@ -48,6 +44,7 @@ func connectionHandler(conn net.Conn) {
 	log.Printf("Connection from %v closed.", conn.RemoteAddr())
 }
 
+// Method to handle sending files to client
 func sendFile(fileName string, conn net.Conn) {
 
 	fmt.Println("send to client:", fileName)
@@ -68,26 +65,6 @@ func sendFile(fileName string, conn net.Conn) {
     // need to implement method for persistant connection
     defer conn.Close()
 	fmt.Println(n, "bytes sent")
-}
-
-func getFile(fileName string, conn net.Conn) {
-
-	copyFileArray := strings.Split(strings.TrimSpace(fileName), ".")
-
-	// adds copy indication for testing purposes as file is being tested in same folder
-	copyFileName := copyFileArray[0] + "Copy." + copyFileArray[1]
-	file, err := os.Create(strings.TrimSpace(copyFileName))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-    // TODO: Need to handle errors
-	n, _ := io.Copy(file, conn)
-    defer conn.Close()
-
-	fmt.Println(n, "bytes received")
-	return
 }
 
 func main() {
