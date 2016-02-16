@@ -1,9 +1,9 @@
-##Problem 2 Description##
+##Problem 3 Description##
 Your task is to implement node logic that allows an arbitrary set of active nodes to agree on a "leader" node. If the leader fails, the remaining nodes should elect a new leader. Once elected, the leader must determine the active nodes in the system and advertise this set to all the nodes in the system (through the key-value service). The set of active nodes may change (as nodes may fail or join the system) and the leader must re-advertise the node set to reflect these events. Active nodes should periodically retrieve this list of active nodes and print it out.
 
 Individual keys in the key-value service may experience permanent unavailability. Your node implementation must be robust to such unavailability and continue to elect leaders that will properly advertise the set of active nodes.
 
-##Problem 2 Write Up##
+##Problem 3 Write Up##
 
 ###Assigning Key-Value Pairs
 When a node initializes, we iterate through numbers starting at zero (first key = 0, second
